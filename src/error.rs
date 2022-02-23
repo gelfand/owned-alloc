@@ -1,6 +1,7 @@
-use std::alloc::{Layout, LayoutError as StdLayoutError};
+use core::alloc::{Layout, LayoutError as CoreLayoutError};
 
 #[derive(Debug, Clone)]
+
 pub struct AllocError {
     pub layout: Layout,
 }
@@ -19,16 +20,16 @@ impl core::fmt::Display for AllocError {
 #[derive(Debug, Clone)]
 pub struct LayoutError;
 
-impl std::fmt::Display for LayoutError {
+impl core::fmt::Display for LayoutError {
     #[inline]
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.write_str("invalid layout parameters")
     }
 }
 
-impl const From<StdLayoutError> for LayoutError {
+impl const From<CoreLayoutError> for LayoutError {
     #[inline]
-    fn from(_err: StdLayoutError) -> Self {
+    fn from(_: CoreLayoutError) -> Self {
         LayoutError
     }
 }
@@ -42,9 +43,9 @@ pub enum RawVecError {
     Layout(LayoutError),
 }
 
-impl std::fmt::Display for RawVecError {
+impl core::fmt::Display for RawVecError {
     #[inline]
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
             RawVecError::Alloc(err) => write!(f, "{}", err),
             RawVecError::Layout(err) => write!(f, "{}", err),

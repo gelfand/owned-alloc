@@ -1,10 +1,11 @@
-use crate::{AllocError, OwnedAlloc, RawVec};
-use std::{
-    alloc::{alloc, dealloc, Layout},
+use core::{
+    alloc::{GlobalAlloc, Layout},
     marker::PhantomData,
     mem,
     ptr::NonNull,
 };
+
+use crate::{AllocError, OwnedAlloc, RawVec, ALLOCATOR};
 
 pub struct UninitAlloc<T>
 where
@@ -33,7 +34,7 @@ impl<T> UninitAlloc<T> {
         let res = if layout.size() == 0 {
             Ok(NonNull::<T>::dangling())
         } else {
-            NonNull::new(unsafe { alloc(layout) })
+            NonNull::new(unsafe { ALLOCATOR.alloc(layout) })
                 .map(NonNull::cast::<T>)
                 .ok_or(AllocError { layout })
         };
@@ -52,7 +53,6 @@ impl<T> UninitAlloc<T> {
         }
     }
 }
-
 impl<T> UninitAlloc<T>
 where
     T: ?Sized,
@@ -98,18 +98,18 @@ where
             let layout = Layout::for_value(self.ptr.as_ref());
 
             if layout.size() != 0 {
-                dealloc(self.ptr.cast().as_ptr(), layout);
+                ALLOCATOR.dealloc(self.ptr.cast().as_ptr(), layout);
             }
         }
     }
 }
 
-impl<T> std::fmt::Debug for UninitAlloc<T>
+impl<T> core::fmt::Debug for UninitAlloc<T>
 where
     T: ?Sized,
 {
     #[inline]
-    fn fmt(&self, fmtr: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, fmtr: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(fmtr, "{:?}", self.ptr)
     }
 }

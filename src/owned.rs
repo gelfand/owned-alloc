@@ -1,6 +1,8 @@
+extern crate alloc;
 use crate::{AllocError, UninitAlloc};
-use std::{
-    alloc::{dealloc, Global, Layout},
+use alloc::boxed::Box;
+use core::{
+    alloc::Layout,
     marker::PhantomData,
     mem,
     ops::{Deref, DerefMut},
@@ -49,10 +51,8 @@ where
         }
     }
     #[inline]
-    pub const unsafe fn from_box(boxed: Box<T>) -> Self {
-        Self::from_raw(NonNull::new_unchecked(
-            Box::into_raw_with_allocator(boxed).0,
-        ))
+    pub unsafe fn from_box(boxed: Box<T>) -> Self {
+        Self::from_raw(NonNull::<T>::new_unchecked(Box::into_raw(boxed)))
     }
     #[inline]
     pub const fn raw(&self) -> NonNull<T> {
@@ -65,8 +65,8 @@ where
         ptr
     }
     #[inline]
-    pub const unsafe fn into_box(self) -> Box<T> {
-        Box::from_raw_in(self.into_raw().as_ptr(), Global)
+    pub unsafe fn into_box(self) -> Box<T> {
+        Box::from_raw(self.ptr.as_ptr())
     }
 
     #[inline]
@@ -95,7 +95,7 @@ where
             let layout = Layout::for_value(self.ptr.as_ref());
             self.ptr.as_ptr().drop_in_place();
             if layout.size() != 0 {
-                dealloc(self.ptr.cast().as_ptr(), layout);
+                //ALLOCATOR.dealloc(self.ptr.cast().as_ptr(), layout);
             }
         }
     }
@@ -123,12 +123,12 @@ where
     }
 }
 
-impl<T> std::fmt::Debug for OwnedAlloc<T>
+impl<T> core::fmt::Debug for OwnedAlloc<T>
 where
     T: ?Sized,
 {
     #[inline]
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::result::Result<(), core::fmt::Error> {
         write!(f, "OwnedAlloc({:?})", self.ptr)
     }
 }

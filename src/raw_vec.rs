@@ -1,11 +1,6 @@
-use crate::{AllocError, LayoutError, RawVecError, UninitAlloc};
-use std::{
-    alloc::{alloc, dealloc, handle_alloc_error, realloc, Layout},
-    marker::PhantomData,
-    mem,
-    ptr::NonNull,
-};
-
+use crate::{Allocator, Layout, LayoutError, NonNull, RawVecError, UninitAlloc, ALLOCATOR};
+use alloc::vec::Vec;
+use core::{alloc::GlobalAlloc, marker::PhantomData, mem};
 pub struct RawVec<T> {
     ptr: NonNull<T>,
     cap: usize,
@@ -31,7 +26,7 @@ impl<T> RawVec<T> {
     pub fn with_capacity(cap: usize) -> Self {
         match Self::try_with_capacity(cap) {
             Ok(this) => this,
-            Err(RawVecError::Alloc(err)) => handle_alloc_error(err.layout),
+            Err(RawVecError::Alloc(err)) => panic!("{}", err),
             Err(RawVecError::Layout(err)) => {
                 panic!("Capacity overflows memory size: {}", err)
             }
@@ -46,9 +41,7 @@ impl<T> RawVec<T> {
         let res = if layout.size() == 0 {
             Ok(NonNull::dangling())
         } else {
-            NonNull::new(unsafe { alloc(layout) })
-                .map(NonNull::cast::<T>)
-                .ok_or_else(|| AllocError { layout }.into())
+            Ok(unsafe { NonNull::new_unchecked(Allocator::alloc(&ALLOCATOR, layout) as *mut T) })
         };
 
         res.map(|ptr| Self {
@@ -148,7 +141,7 @@ impl<T> RawVec<T> {
     /// element is accessed incorrectly, undefined behavior occurs.
     #[inline]
     pub const unsafe fn as_slice(&self) -> &[T] {
-        std::slice::from_raw_parts(self.ptr.as_ptr(), self.cap())
+        core::slice::from_raw_parts(self.ptr.as_ptr(), self.cap())
     }
 
     /// Encodes the `RawVec` as an mutable reference to a slice with length
@@ -159,7 +152,7 @@ impl<T> RawVec<T> {
     /// element is accessed incorrectly, undefined behavior occurs.
     #[inline]
     pub const unsafe fn as_mut_slice(&mut self) -> &mut [T] {
-        std::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.cap())
+        core::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.cap())
     }
 
     /// Creates a plain old standard library `Vec` from the `RawVec` and a given
@@ -185,7 +178,7 @@ impl<T> RawVec<T> {
     #[inline]
     pub fn resize(&mut self, new_cap: usize) {
         match self.try_resize(new_cap) {
-            Err(RawVecError::Alloc(err)) => handle_alloc_error(err.layout),
+            Err(RawVecError::Alloc(err)) => panic!("{}", err),
             Err(RawVecError::Layout(err)) => {
                 panic!("Capacity overflows memory size: {}", err)
             }
@@ -205,10 +198,15 @@ impl<T> RawVec<T> {
             self.free();
             Ok(NonNull::dangling())
         } else {
-            let old = Self::make_layout(self.cap).unwrap();
-            NonNull::new(unsafe { realloc(self.ptr.cast().as_ptr(), old, layout.size()) })
-                .map(NonNull::cast::<T>)
-                .ok_or_else(|| AllocError { layout }.into())
+            let new = unsafe {
+                NonNull::new_unchecked(Allocator::reallocate(
+                    &ALLOCATOR,
+                    self.ptr.as_ptr(),
+                    layout,
+                    new_cap,
+                ))
+            };
+            Ok(new)
         };
         res.map(|ptr| {
             self.ptr = ptr;
@@ -221,7 +219,7 @@ impl<T> RawVec<T> {
         if self.cap != 0 && mem::size_of::<T>() != 0 {
             let layout = Self::make_layout(self.cap).unwrap();
             unsafe {
-                dealloc(self.ptr.cast().as_ptr(), layout);
+                Allocator::alloc(&ALLOCATOR, layout);
             }
         }
     }
@@ -236,9 +234,9 @@ impl<T> RawVec<T> {
     }
 }
 
-impl<T> std::fmt::Debug for RawVec<T> {
+impl<T> core::fmt::Debug for RawVec<T> {
     #[inline]
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "RawVec {{ pointer {:?}, cap: {} }}", self.ptr, self.cap)
     }
 }
