@@ -1,8 +1,17 @@
 [package]
-name = "owned_alloc"
-version = "0.1.0"
+name = "owned-alloc"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
+version = "0.1.0"
+authors = ["Bruno Zimmermann <brunoczim@gmail.com>"]
+description = "A crate to help reducing manual memory management errors."
+repository = "https://gitlab.com/bzim/owned-alloc"
+readme = "README.md"
+license = "MIT"
+keywords = [
+    "memory",
+    "raw-vec",
+    "manual-memory",
+    "owned-allocation",
+    "dynamic-allocation",
+]
+categories = ["memory-management", "rust-patterns", "data-structures"]
