@@ -76,6 +76,13 @@ where
             UninitAlloc::from_raw(self.into_raw())
         }
     }
+
+    /// "Forgets" about dropping the inner value and returns an uninitialized
+    /// allocation.
+    #[inline]
+    pub const fn forget_inner(self) -> UninitAlloc<T> {
+        unsafe { UninitAlloc::from_raw(self.into_raw()) }
+    }
 }
 
 impl<T> Drop for OwnedAlloc<T>

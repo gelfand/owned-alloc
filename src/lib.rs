@@ -16,6 +16,7 @@
 #![feature(const_eval_select)]
 #![feature(const_precise_live_drops)]
 #![feature(const_trait_impl)]
+#![feature(const_fn_trait_bound)]
 #![feature(const_option)]
 
 pub mod cache;
