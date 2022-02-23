@@ -143,8 +143,8 @@ impl<T> From<T> for OwnedAlloc<T> {
     }
 }
 
-unsafe impl<T> Send for OwnedAlloc<T> where T: ?Sized + Send {}
-unsafe impl<T> Sync for OwnedAlloc<T> where T: ?Sized + Sync {}
+unsafe impl<T> const Send for OwnedAlloc<T> where T: ?Sized + Send {}
+unsafe impl<T> const Sync for OwnedAlloc<T> where T: ?Sized + Sync {}
 
 #[cfg(test)]
 mod test {
