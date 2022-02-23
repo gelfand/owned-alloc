@@ -1,4 +1,4 @@
-use crate::UninitAlloc;
+use crate::{AllocError, UninitAlloc};
 use std::{
     alloc::{dealloc, Global, Layout},
     marker::PhantomData,
@@ -13,17 +13,6 @@ where
 {
     ptr: NonNull<T>,
     _marker: PhantomData<T>,
-}
-
-#[derive(Debug)]
-pub struct AllocError {
-    pub layout: Layout,
-}
-impl core::fmt::Display for AllocError {
-    #[inline]
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Allocation error")
-    }
 }
 
 impl<T> OwnedAlloc<T> {

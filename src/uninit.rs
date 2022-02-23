@@ -1,4 +1,4 @@
-use crate::{AllocError, OwnedAlloc};
+use crate::{AllocError, OwnedAlloc, RawVec};
 use std::{
     alloc::{alloc, dealloc, Layout},
     marker::PhantomData,
@@ -114,8 +114,18 @@ where
     }
 }
 
-unsafe impl<T> Send for UninitAlloc<T> where T: ?Sized + Send {}
-unsafe impl<T> Sync for UninitAlloc<T> where T: ?Sized + Sync {}
+impl<T> const From<RawVec<T>> for UninitAlloc<[T]> {
+    #[inline]
+    fn from(alloc: RawVec<T>) -> Self {
+        Self {
+            ptr: alloc.into_raw_slice(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+unsafe impl<T> const Send for UninitAlloc<T> where T: ?Sized + Send {}
+unsafe impl<T> const Sync for UninitAlloc<T> where T: ?Sized + Sync {}
 
 #[cfg(test)]
 mod test {
